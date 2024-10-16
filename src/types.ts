@@ -1,10 +1,23 @@
+import * as THREE from 'three';
+
 export type Block = {
   id: number;
   name: string;
   color?: Color;
   isValueble: boolean;
   scarcity?: number;
-  spawnLevel?: number;
+  material?: THREE.Material | THREE.Material[];
+  scale?: CoOrdinates;
+};
+
+export type ResouceBlock = {
+  id: number;
+  name: string;
+  color: Color;
+  isValueble: boolean;
+  scarcity: number;
+  material: THREE.Material | THREE.Material[];
+  scale: CoOrdinates;
 };
 
 export type Color =
@@ -26,3 +39,9 @@ export type BlockArray = BlockType[][][];
 export interface Irng {
   random(): number;
 }
+
+export type CoOrdinates = {
+  x: number;
+  y: number;
+  z: number;
+};

@@ -1,49 +1,47 @@
 import * as THREE from 'three';
 import { SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
-import { RNG } from '../rng.js';
-import { blocks } from './blocks.js';
-import { BlockArray, BlockType, Irng } from '../types.js';
+import { RNG } from '../rng';
+import { blocks, resources } from './blocks.js';
+import { Irng, BlockArray, BlockType } from '../types.js';
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshLambertMaterial();
 
 export class World extends THREE.Group {
-  /*Parameters for World size*/
   size = {
     width: 64,
     height: 16,
   };
 
-  /*Parameters for terrain generation*/
+  /* Parameters for terrain generation*/
   params = {
     seed: 0,
     terrain: {
       scale: 30,
       magnitude: 0.2,
       offset: 0.5,
+      dirtLayer: 3,
     },
   };
 
-  /*Array that stores all the block instance of the world*/
+  /*Array that contains all the block instance of the world*/
   data: BlockArray = [];
 
-  threshold = 0.5;
-
-  /*Generates the world data and meshes -- when world parameters are changed calling this will update the world*/
+  /* Generates the world data and meshes*/
   generate() {
     const rng = new RNG(this.params.seed);
     this.initialize();
+    this.generateResources(rng);
     this.generateTerrain(rng);
     this.generateMeshes();
   }
 
-  /*Initializes an air blocks world*/
-  initialize() {
+  /*Initializes an empty world*/
+  initialize(): void {
     this.data = [];
     for (let x = 0; x < this.size.width; x++) {
-      const slice: BlockType[][] = [];
+      const slice: any = [];
       for (let y = 0; y < this.size.height; y++) {
-        const row: BlockType[] = [];
+        const row: any = [];
         for (let z = 0; z < this.size.width; z++) {
           row.push({
             id: blocks.air.id,
@@ -56,13 +54,35 @@ export class World extends THREE.Group {
     }
   }
 
+  /*Generates resources within the world*/
+  generateResources(rng: Irng): void {
+    for (const resource of resources) {
+      const simplex = new SimplexNoise(rng);
+      for (let x = 0; x < this.size.width; x++) {
+        for (let y = 0; y < this.size.height; y++) {
+          for (let z = 0; z < this.size.width; z++) {
+            const n = simplex.noise3d(
+              x / resource.scale.x,
+              y / resource.scale.y,
+              z / resource.scale.z
+            );
+
+            if (n > resource.scarcity) {
+              this.setBlockId(x, y, z, resource.id);
+            }
+          }
+        }
+      }
+    }
+  }
+
   /*Generates the world terrain data*/
-  generateTerrain(rng: Irng) {
-    const noiseGenerator = new SimplexNoise(rng);
+  generateTerrain(rng: Irng): void {
+    const simplex = new SimplexNoise(rng);
     for (let x = 0; x < this.size.width; x++) {
       for (let z = 0; z < this.size.width; z++) {
         // Compute noise value at this x-z location
-        const value = noiseGenerator.noise(
+        const value = simplex.noise(
           x / this.params.terrain.scale,
           z / this.params.terrain.scale
         );
@@ -84,11 +104,18 @@ export class World extends THREE.Group {
         for (let y = 0; y < this.size.height; y++) {
           if (y === height) {
             this.setBlockId(x, y, z, blocks.grass.id);
-            // Fill in everything below with dirt
-          } else if (y <= height - 1 && y >= height - 3) {
+            // Fill in blocks with dirt if they aren't already filled with something else
+          } else if (
+            y < height &&
+            y > height - this.params.terrain.dirtLayer &&
+            this.getBlock(x, y, z)?.id === blocks.air.id
+          ) {
             this.setBlockId(x, y, z, blocks.dirt.id);
-            // Fill in everything below with stone
-          } else if (y <= height - 3) {
+            // Clear everything above
+          } else if (
+            y <= height - this.params.terrain.dirtLayer &&
+            this.getBlock(x, y, z)?.id === blocks.air.id
+          ) {
             this.setBlockId(x, y, z, blocks.stone.id);
             // Clear everything above
           } else if (y > height) {
@@ -100,31 +127,44 @@ export class World extends THREE.Group {
   }
 
   /*Generates the meshes from the world data*/
-  generateMeshes() {
+  generateMeshes(): void {
     this.disposeChildren();
 
-    // Initialize instanced mesh to total size of world
-    const maxCount = this.size.width * this.size.width * this.size.height;
-    // using Instanced Mesh to reduce the draws calls
-    const mesh = new THREE.InstancedMesh(geometry, material, maxCount);
-    mesh.count = 0;
+    // Create lookup table of InstancedMesh's with the block id being the key
+    const meshes: Record<number, THREE.InstancedMesh> = {};
+    Object.values(blocks)
+      .filter((blockType: any) => blockType.id !== blocks.air.id)
+      .forEach((blockType: any) => {
+        const maxCount = this.size.width * this.size.width * this.size.height;
+        const mesh = new THREE.InstancedMesh(
+          geometry,
+          blockType.material,
+          maxCount
+        );
+        mesh.name = blockType.name;
+        mesh.count = 0;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        meshes[blockType.id] = mesh;
+      });
 
-    // Add instances for each non-air block
+    // Add instances for each non-empty block
     const matrix = new THREE.Matrix4();
     for (let x = 0; x < this.size.width; x++) {
       for (let y = 0; y < this.size.height; y++) {
         for (let z = 0; z < this.size.width; z++) {
-          const blockId = this.getBlock(x, y, z)?.id;
-          const blockType = Object.values(blocks).find((x) => x.id === blockId);
+          const blockId = this.getBlock(x, y, z)?.id || blocks.air.id;
+
+          // Ignore empty blocks
+          if (blockId === blocks.air.id) continue;
+
+          const mesh = meshes[blockId];
           const instanceId = mesh.count;
 
-          // Create a new instance if
-          // 1) There is a block at this location
-          // 2) It is not obscured by other blocks
-          if (blockId !== blocks.air.id && !this.isBlockObscured(x, y, z)) {
+          // Create a new instance if block is not obscured by other blocks
+          if (!this.isBlockObscured(x, y, z)) {
             matrix.setPosition(x, y, z);
             mesh.setMatrixAt(instanceId, matrix);
-            mesh.setColorAt(instanceId, new THREE.Color(blockType?.color));
             this.setBlockInstanceId(x, y, z, instanceId);
             mesh.count++;
           }
@@ -132,9 +172,11 @@ export class World extends THREE.Group {
       }
     }
 
-    this.add(mesh);
+    // Add all instanced meshes to the scene
+    this.add(...Object.values(meshes));
   }
 
+  /*Gets the block data at (x, y, z)*/
   getBlock(x: number, y: number, z: number): BlockType | null {
     if (this.inBounds(x, y, z)) {
       return this.data[x][y][z];
@@ -143,12 +185,14 @@ export class World extends THREE.Group {
     }
   }
 
-  setBlockId(x: number, y: number, z: number, id: number) {
+  /*Sets the block id for the block at (x, y, z)*/
+  setBlockId(x: number, y: number, z: number, id: number): void {
     if (this.inBounds(x, y, z)) {
       this.data[x][y][z].id = id;
     }
   }
 
+  /*Sets the block instance id for the block at (x, y, z)*/
   setBlockInstanceId(
     x: number,
     y: number,
@@ -160,7 +204,7 @@ export class World extends THREE.Group {
     }
   }
 
-  /*This method return boolean based on the block position*/
+  /*Checks if the (x, y, z) coordinates are within bounds*/
   inBounds(x: number, y: number, z: number): boolean {
     if (
       x >= 0 &&
@@ -176,6 +220,7 @@ export class World extends THREE.Group {
     }
   }
 
+  /*Returns true if this block is completely hidden by other blocks*/
   isBlockObscured(x: number, y: number, z: number): boolean {
     const up = this.getBlock(x, y + 1, z)?.id ?? blocks.air.id;
     const down = this.getBlock(x, y - 1, z)?.id ?? blocks.air.id;
