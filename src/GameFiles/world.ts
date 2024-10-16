@@ -45,11 +45,10 @@ export class World extends THREE.Group {
       for (let y = 0; y < this.size.height; y++) {
         const row: BlockType[] = [];
         for (let z = 0; z < this.size.width; z++) {
-          const temp: BlockType = {
+          row.push({
             id: blocks.air.id,
             instanceId: null,
-          };
-          row.push(temp);
+          });
         }
         slice.push(row);
       }
@@ -106,6 +105,7 @@ export class World extends THREE.Group {
 
     // Initialize instanced mesh to total size of world
     const maxCount = this.size.width * this.size.width * this.size.height;
+    // using Instanced Mesh to reduce the draws calls
     const mesh = new THREE.InstancedMesh(geometry, material, maxCount);
     mesh.count = 0;
 
@@ -149,14 +149,19 @@ export class World extends THREE.Group {
     }
   }
 
-  setBlockInstanceId(x: number, y: number, z: number, instanceId: number) {
+  setBlockInstanceId(
+    x: number,
+    y: number,
+    z: number,
+    instanceId: number
+  ): void {
     if (this.inBounds(x, y, z)) {
       this.data[x][y][z].instanceId = instanceId;
     }
   }
 
   /*This method return boolean based on the block position*/
-  inBounds(x: number, y: number, z: number) {
+  inBounds(x: number, y: number, z: number): boolean {
     if (
       x >= 0 &&
       x < this.size.width &&
@@ -171,7 +176,7 @@ export class World extends THREE.Group {
     }
   }
 
-  isBlockObscured(x: number, y: number, z: number) {
+  isBlockObscured(x: number, y: number, z: number): boolean {
     const up = this.getBlock(x, y + 1, z)?.id ?? blocks.air.id;
     const down = this.getBlock(x, y - 1, z)?.id ?? blocks.air.id;
     const left = this.getBlock(x + 1, y, z)?.id ?? blocks.air.id;
@@ -194,7 +199,7 @@ export class World extends THREE.Group {
     }
   }
 
-  disposeChildren() {
+  disposeChildren(): void {
     this.traverse((obj: any) => {
       if (obj.dispose) obj.dispose();
     });
