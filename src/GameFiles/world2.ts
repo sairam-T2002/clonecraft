@@ -132,50 +132,119 @@ export class World extends THREE.Group {
   generateMeshes(): void {
     this.disposeChildren();
 
-    // Create lookup table of InstancedMesh's with the block id being the key
-    const meshes: Record<number, THREE.InstancedMesh> = {};
+    // Create lookup table for InstancedMeshes for each face of each block type
+    const faceMeshes: Record<number, Record<string, THREE.InstancedMesh>> = {};
+    const faces = ['top', 'bottom', 'left', 'right', 'front', 'back'];
+
+    // Initialize InstancedMeshes for each face for all blocks
     Object.values(blocks)
       .filter((blockType: any) => blockType.id !== blocks.air.id)
       .forEach((blockType: any) => {
         const maxCount = this.size.width * this.size.width * this.size.height;
-        const mesh = new THREE.InstancedMesh(
-          geometry,
-          blockType.material,
-          maxCount
-        );
-        mesh.name = blockType.name;
-        mesh.count = 0;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        meshes[blockType.id] = mesh;
+        faceMeshes[blockType.id] = {};
+        faces.forEach((face) => {
+          const mesh = new THREE.InstancedMesh(
+            geometry, // Assume each face has a corresponding geometry, or define face-specific geometry here
+            blockType.material,
+            maxCount
+          );
+          mesh.name = `${blockType.name}_${face}`;
+          mesh.count = 0;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          faceMeshes[blockType.id][face] = mesh;
+        });
       });
 
-    // Add instances for each non-empty block
+    // Add instances for each exposed face of non-air blocks
     const matrix = new THREE.Matrix4();
     for (let x = 0; x < this.size.width; x++) {
       for (let y = 0; y < this.size.height; y++) {
         for (let z = 0; z < this.size.width; z++) {
           const blockId = this.getBlock(x, y, z)?.id || blocks.air.id;
 
-          // Ignore empty blocks
+          // Ignore air blocks
           if (blockId === blocks.air.id) continue;
 
-          const mesh = meshes[blockId];
-          const instanceId = mesh.count;
-
-          // Create a new instance if block is not obscured by other blocks
-          if (!this.isBlockObscured(x, y, z)) {
-            matrix.setPosition(x, y, z);
-            mesh.setMatrixAt(instanceId, matrix);
-            this.setBlockInstanceId(x, y, z, instanceId);
-            mesh.count++;
+          // Check for each face if it is exposed to air
+          if (this.isFaceExposed(x, y, z, 'top')) {
+            const mesh = faceMeshes[blockId]['top'];
+            this.addFaceInstance(mesh, matrix, x, y, z);
+          }
+          if (this.isFaceExposed(x, y, z, 'bottom')) {
+            const mesh = faceMeshes[blockId]['bottom'];
+            this.addFaceInstance(mesh, matrix, x, y, z);
+          }
+          if (this.isFaceExposed(x, y, z, 'left')) {
+            const mesh = faceMeshes[blockId]['left'];
+            this.addFaceInstance(mesh, matrix, x, y, z);
+          }
+          if (this.isFaceExposed(x, y, z, 'right')) {
+            const mesh = faceMeshes[blockId]['right'];
+            this.addFaceInstance(mesh, matrix, x, y, z);
+          }
+          if (this.isFaceExposed(x, y, z, 'front')) {
+            const mesh = faceMeshes[blockId]['front'];
+            this.addFaceInstance(mesh, matrix, x, y, z);
+          }
+          if (this.isFaceExposed(x, y, z, 'back')) {
+            const mesh = faceMeshes[blockId]['back'];
+            this.addFaceInstance(mesh, matrix, x, y, z);
           }
         }
       }
     }
 
-    // Add all instanced meshes to the scene
-    this.add(...Object.values(meshes));
+    // Add all instanced face meshes to the scene
+    Object.values(faceMeshes).forEach((blockTypeMeshes) =>
+      this.add(...Object.values(blockTypeMeshes))
+    );
+  }
+
+  /* Adds a face instance at the given position to the mesh */
+  addFaceInstance(
+    mesh: THREE.InstancedMesh,
+    matrix: THREE.Matrix4,
+    x: number,
+    y: number,
+    z: number
+  ): void {
+    const instanceId = mesh.count;
+    matrix.setPosition(x, y, z);
+    mesh.setMatrixAt(instanceId, matrix);
+    mesh.count++;
+  }
+
+  /* Checks if the specified face of a block is exposed to air */
+  isFaceExposed(x: number, y: number, z: number, face: string): boolean {
+    switch (face) {
+      case 'top':
+        return (
+          (this.getBlock(x, y + 1, z)?.id ?? blocks.air.id) === blocks.air.id
+        );
+      case 'bottom':
+        return (
+          (this.getBlock(x, y - 1, z)?.id ?? blocks.air.id) === blocks.air.id
+        );
+      case 'left':
+        return (
+          (this.getBlock(x + 1, y, z)?.id ?? blocks.air.id) === blocks.air.id
+        );
+      case 'right':
+        return (
+          (this.getBlock(x - 1, y, z)?.id ?? blocks.air.id) === blocks.air.id
+        );
+      case 'front':
+        return (
+          (this.getBlock(x, y, z + 1)?.id ?? blocks.air.id) === blocks.air.id
+        );
+      case 'back':
+        return (
+          (this.getBlock(x, y, z - 1)?.id ?? blocks.air.id) === blocks.air.id
+        );
+      default:
+        return false;
+    }
   }
 
   /*Gets the block data at (x, y, z)*/

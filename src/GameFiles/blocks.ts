@@ -11,7 +11,7 @@ function loadTexture(path: string): THREE.Texture {
   return texture;
 }
 
-const textures: any = {
+const textures: Record<string, THREE.Texture> = {
   dirt: loadTexture('textures/dirt.png'),
   grass: loadTexture('textures/grass.png'),
   grassSide: loadTexture('textures/grass_side.png'),

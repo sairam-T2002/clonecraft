@@ -36,7 +36,7 @@ export type BlockType = {
 
 export type BlockArray = BlockType[][][];
 
-export interface Irng {
+export interface IRng {
   random(): number;
 }
 
