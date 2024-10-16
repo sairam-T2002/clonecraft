@@ -10,7 +10,7 @@ const material = new THREE.MeshLambertMaterial();
 export class World extends THREE.Group {
   /*Parameters for World size*/
   size = {
-    width: 32,
+    width: 64,
     height: 16,
   };
 

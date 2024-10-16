@@ -1,8 +1,8 @@
 import { Irng } from './types';
 
 export class RNG implements Irng {
-  m_w = 123456789;
-  m_z = 987654321;
+  m_w = 9629490296;
+  m_z = 9361771979;
   mask = 0xffffffff;
 
   constructor(seed: number) {
