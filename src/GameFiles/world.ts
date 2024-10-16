@@ -27,7 +27,7 @@ export class World extends THREE.Group {
   data: BlockArray = [];
 
   /* Generates the world data and meshes*/
-  generate() {
+  generate(): void {
     const rng = new RNG(this.params.seed);
     this.initialize();
     this.generateResources(rng);

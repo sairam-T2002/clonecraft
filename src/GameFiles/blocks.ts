@@ -3,7 +3,7 @@ import { Block, ResouceBlock } from '../types';
 
 const textureLoader = new THREE.TextureLoader();
 
-function loadTexture(path: string) {
+function loadTexture(path: string): THREE.Texture {
   const texture = textureLoader.load(path);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.magFilter = THREE.NearestFilter;
@@ -11,7 +11,7 @@ function loadTexture(path: string) {
   return texture;
 }
 
-const textures = {
+const textures: any = {
   dirt: loadTexture('textures/dirt.png'),
   grass: loadTexture('textures/grass.png'),
   grassSide: loadTexture('textures/grass_side.png'),
