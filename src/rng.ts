@@ -1,6 +1,6 @@
-import { Irng } from './types';
+import { IRng } from './types';
 
-export class RNG implements Irng {
+export class RNG implements IRng {
   m_w = 123456789;
   m_z = 987654321;
   mask = 0xffffffff;
