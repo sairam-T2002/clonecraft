@@ -13,7 +13,7 @@ export class World extends THREE.Group {
     height: 16,
   };
 
-  /* Parameters for terrain generation*/
+  // Parameters for terrain generation
   params: any = {
     seed: 0,
     terrain: {
@@ -24,10 +24,10 @@ export class World extends THREE.Group {
     },
   };
 
-  /*Array that contains all the block instance of the world*/
+  // Array that contains all the block instance of the world
   data: WorldArray = [];
 
-  /* Generates the world data and meshes*/
+  // Generates the world data and meshes
   generate(): void {
     const rng = new RNG(this.params.seed);
     this.initialize();
@@ -36,7 +36,7 @@ export class World extends THREE.Group {
     this.generateMeshes();
   }
 
-  /*Initializes an empty world*/
+  // Initializes an empty world
   initialize(): void {
     this.data = [];
     for (let x = 0; x < this.size.width; x++) {
@@ -55,7 +55,7 @@ export class World extends THREE.Group {
     }
   }
 
-  /*Generates resources within the world*/
+  // Generates resources within the world
   generateResources(rng: IRng): void {
     for (const resource of resources) {
       const simplex = new SimplexNoise(rng);
@@ -77,7 +77,7 @@ export class World extends THREE.Group {
     }
   }
 
-  /*Generates the world terrain data*/
+  // Generates the world terrain data
   generateTerrain(rng: IRng): void {
     const simplex = new SimplexNoise(rng);
     for (let x = 0; x < this.size.width; x++) {
@@ -128,7 +128,7 @@ export class World extends THREE.Group {
     }
   }
 
-  /*Generates the meshes from the world data*/
+  // Generates the meshes from the world data
   generateMeshes(): void {
     this.disposeChildren();
 
@@ -178,7 +178,7 @@ export class World extends THREE.Group {
     this.add(...Object.values(meshes));
   }
 
-  /*Gets the block data at (x, y, z)*/
+  // Gets the block data at (x, y, z)
   getBlock(x: number, y: number, z: number): BlockType | null {
     if (this.inBounds(x, y, z)) {
       return this.data[x][y][z];
@@ -187,14 +187,14 @@ export class World extends THREE.Group {
     }
   }
 
-  /*Sets the block id for the block at (x, y, z)*/
+  // Sets the block id for the block at (x, y, z)
   setBlockId(x: number, y: number, z: number, id: number): void {
     if (this.inBounds(x, y, z)) {
       this.data[x][y][z].id = id;
     }
   }
 
-  /*Sets the block instance id for the block at (x, y, z)*/
+  // Sets the block instance id for the block at (x, y, z)
   setBlockInstanceId(
     x: number,
     y: number,
@@ -206,7 +206,7 @@ export class World extends THREE.Group {
     }
   }
 
-  /*Checks if the (x, y, z) coordinates are within bounds*/
+  // Checks if the (x, y, z) coordinates are within bounds
   inBounds(x: number, y: number, z: number): boolean {
     if (
       x >= 0 &&
@@ -222,7 +222,7 @@ export class World extends THREE.Group {
     }
   }
 
-  /*Returns true if this block is completely hidden by other blocks*/
+  // Returns true if this block is completely hidden by other blocks
   isBlockObscured(x: number, y: number, z: number): boolean {
     const up = this.getBlock(x, y + 1, z)?.id ?? blocks.air.id;
     const down = this.getBlock(x, y - 1, z)?.id ?? blocks.air.id;

@@ -1,12 +1,11 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { World } from './GameFiles/world';
-// import { World } from './GameFiles/world2';
+// import { World } from './GameFiles/world';
+import { World } from './GameFiles/world2';
 import { setupUI } from './debugMenu';
 import { Player } from './GameFiles/player';
 import { Physics } from './Physics/physics';
-
 // Renderer setup
 const renderer = new THREE.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);

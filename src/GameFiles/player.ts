@@ -23,7 +23,7 @@ export class Player {
   input = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
-    this.position.set(32, 10, 32);
+    this.position.set(32, 50, 32);
     this.cameraHelper.visible = false;
     scene.add(this.camera);
     scene.add(this.cameraHelper);
@@ -51,7 +51,7 @@ export class Player {
     }
 
     document.getElementById('info-player-position')!.innerHTML =
-      this.toString();
+      this.positionToString();
   }
 
   // Updates the position of the player's bounding cylinder helper
@@ -60,7 +60,7 @@ export class Player {
     this.boundsHelper.position.y -= this.height / 2;
   }
 
-  //Returns the current world position of the player
+  // Returns the current world position of the player
   get position(): THREE.Vector3 {
     return this.camera.position;
   }
@@ -128,14 +128,14 @@ export class Player {
         break;
       case 'KeyR':
         if (event.repeat) break;
-        this.position.set(32, 10, 32);
+        this.position.set(32, 50, 32);
         this.velocity.set(0, 0, 0);
         break;
     }
   }
 
   // Returns player position in a readable string form
-  toString(): string {
+  positionToString(): string {
     let str = '';
     str += `X: ${this.position.x.toFixed(3)} `;
     str += `Y: ${this.position.y.toFixed(3)} `;

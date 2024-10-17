@@ -22,7 +22,7 @@ export class Physics {
   gravity: number = 32;
 
   // Physic simulation rate
-  simulationRate: number = 250;
+  simulationRate: number = 180;
   stepSize: number = 1 / this.simulationRate;
   // Accumulator to keep track of leftover dt
   accumulator: number = 0;
@@ -34,7 +34,7 @@ export class Physics {
     scene.add(this.helpers);
   }
 
-  /*Moves the physics simulation forward in time by 'dt'*/
+  // Moves the physics simulation forward in time by 'dt'
   update(dt: number, player: Player, world: World): void {
     this.accumulator += dt;
     while (this.accumulator >= this.stepSize) {
@@ -47,7 +47,7 @@ export class Physics {
     player.updateBoundsHelper();
   }
 
-  /*Main function for collision detection*/
+  // Main function for collision detection
   detectCollisions(player: Player, world: World): void {
     player.onGround = false;
     this.helpers.clear();
@@ -60,7 +60,7 @@ export class Physics {
     }
   }
 
-  /*Performs a rough search against the world to return all possible blocks the player may be colliding with*/
+  // Performs a rough search against the world to return all possible blocks the player may be colliding with
   broadPhase(player: Player, world: World): Coords[] {
     const candidates: Coords[] = [];
 
@@ -97,7 +97,7 @@ export class Physics {
     return candidates;
   }
 
-  /*Narrows down the blocks found in the broad-phase to the set of blocks the player is actually colliding with broad phase candidates*/
+  // Narrows down the blocks found in the broad-phase to the set of blocks the player is actually colliding with broad phase candidates
   narrowPhase(candidates: Coords[], player: Player): Collision[] {
     const collisions: Collision[] = [];
 
@@ -149,7 +149,7 @@ export class Physics {
     return collisions;
   }
 
-  /*Resolves each of the collisions found in the narrow-phase*/
+  // Resolves each of the collisions found in the narrow-phase
   resolveCollisions(collisions: Collision[], player: Player): void {
     // Resolve the collisions in order of the smallest overlap to the largest
     collisions.sort((a, b) => a.overlap - b.overlap);
@@ -178,7 +178,7 @@ export class Physics {
     }
   }
 
-  /*Returns true if the point 'p' is inside the player's bounding cylinder*/
+  // Returns true if the point 'p' is inside the player's bounding cylinder
   pointInPlayerBoundingCylinder(p: Coords, player: Player): boolean {
     const dx = p.x - player.position.x;
     const dy = p.y - (player.position.y - player.height / 2);
@@ -191,14 +191,14 @@ export class Physics {
     );
   }
 
-  /*Visualizes the block the player is colliding with*/
+  // Visualizes the block the player is colliding with
   addCollisionHelper(block: Coords): void {
     const blockMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
     blockMesh.position.copy(block);
     this.helpers.add(blockMesh);
   }
 
-  /*Visualizes the contact at the point 'p'*/
+  // Visualizes the contact at the point 'p'
   addContactPointerHelper(p: Coords): void {
     const contactMesh = new THREE.Mesh(contactGeometry, contactMaterial);
     contactMesh.position.copy(p);

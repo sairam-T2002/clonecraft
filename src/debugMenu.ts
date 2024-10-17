@@ -1,5 +1,6 @@
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { World } from './GameFiles/world';
+// import { World } from './GameFiles/world';
+import { World } from './GameFiles/world2';
 import { resources } from './GameFiles/blocks';
 import { Player } from './GameFiles/player';
 import { Physics } from './Physics/physics';
@@ -41,6 +42,10 @@ export function setupUI(world: World, player: Player, physics: Physics) {
   }
 
   terrainFolder.onChange(() => {
+    world.generate();
+  });
+
+  worldFolder.onChange(() => {
     world.generate();
   });
 }
