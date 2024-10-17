@@ -65,11 +65,11 @@ export class Physics {
     const candidates: Coords[] = [];
 
     // Get the block containing the center of the camera
-    const playerBlockPos = {
-      x: Math.floor(player.position.x),
-      y: Math.floor(player.position.y),
-      z: Math.floor(player.position.z),
-    };
+    // const playerBlockPos = {
+    //   x: Math.floor(player.position.x),
+    //   y: Math.floor(player.position.y),
+    //   z: Math.floor(player.position.z),
+    // };
 
     // Get the block extents of the player
     const minX = Math.floor(player.position.x - player.radius);
