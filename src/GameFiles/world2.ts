@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
-import { RNG } from '../rng';
+import { RNG } from './WorldRng.js';
 import { blocks, resources } from './blocks.js';
-import { IRng, BlockArray, BlockType } from '../types.js';
+import { IRng, WorldArray, BlockType } from '../types.js';
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 
@@ -25,7 +25,7 @@ export class World extends THREE.Group {
   };
 
   /*Array that contains all the block instance of the world*/
-  data: BlockArray = [];
+  data: WorldArray = [];
 
   /* Generates the world data and meshes*/
   generate(): void {

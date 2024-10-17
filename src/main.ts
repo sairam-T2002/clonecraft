@@ -5,6 +5,7 @@ import { World } from './GameFiles/world';
 // import { World } from './GameFiles/world2';
 import { setupUI } from './debugMenu';
 import { Player } from './GameFiles/player';
+import { Physics } from './Physics/physics';
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer();
@@ -30,7 +31,8 @@ controls.update();
 
 // Scene setup
 const scene = new THREE.Scene();
-const player = new Player(scene);
+export const player = new Player(scene);
+const physics = new Physics(scene);
 const world = new World();
 world.generate();
 scene.add(world);
@@ -75,7 +77,7 @@ function animate() {
   requestAnimationFrame(animate);
   const currentTime = performance.now();
   const dt = (currentTime - previousTime) / 1000;
-  player.update(dt);
+  physics.update(dt, player, world);
   renderer.render(
     scene,
     player.controls.isLocked ? player.camera : orbitCamera
@@ -84,6 +86,6 @@ function animate() {
   previousTime = currentTime;
 }
 
-setupUI(world, player);
+setupUI(world, player, physics);
 setupLighting();
 animate();

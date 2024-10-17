@@ -7,7 +7,7 @@ export type Block = {
   isValueble: boolean;
   scarcity?: number;
   material?: THREE.Material | THREE.Material[];
-  scale?: CoOrdinates;
+  scale?: Coords;
 };
 
 export type ResouceBlock = {
@@ -17,7 +17,7 @@ export type ResouceBlock = {
   isValueble: boolean;
   scarcity: number;
   material: THREE.Material | THREE.Material[];
-  scale: CoOrdinates;
+  scale: Coords;
 };
 
 export type Color =
@@ -34,14 +34,21 @@ export type BlockType = {
   instanceId?: number | undefined | null;
 };
 
-export type BlockArray = BlockType[][][];
+export type WorldArray = BlockType[][][];
 
 export interface IRng {
   random(): number;
 }
 
-export type CoOrdinates = {
+export type Coords = {
   x: number;
   y: number;
   z: number;
+};
+
+export type Collision = {
+  block: Coords;
+  contactPoint: Coords;
+  normal: THREE.Vector3;
+  overlap: number;
 };
