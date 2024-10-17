@@ -1,20 +1,21 @@
 import { player } from './main';
+
 function isMobile(): boolean {
-  // Regular expression to match common mobile user agents
   return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(
     navigator.userAgent
   );
 }
+
 if (isMobile()) {
   const joystickArea = document.getElementById('joystick-area');
   const joystick = document.getElementById('joystick');
   let isDragging: boolean = false;
   let centerX: number, centerY: number;
 
-  function updateJoystickPosition(e: any) {
+  function updateJoystickPosition(clientX: number, clientY: number) {
     const rect = joystickArea!.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     const dx = x - centerX;
     const dy = y - centerY;
@@ -39,7 +40,6 @@ if (isMobile()) {
     const displacementX = (finalX - centerX) / maxDistance;
     const displacementY = (centerY - finalY) / maxDistance; // Invert Y for intuitive up/down
 
-    // Log the displacement
     console.log(
       `Joystick Position - X: ${displacementX.toFixed(
         2
@@ -56,20 +56,14 @@ if (isMobile()) {
     });
   }
 
-  joystickArea!.addEventListener('mousedown', (e) => {
+  function startDrag(clientX: number, clientY: number) {
     isDragging = true;
     centerX = joystickArea!.clientWidth / 2;
     centerY = joystickArea!.clientHeight / 2;
-    updateJoystickPosition(e);
-  });
+    updateJoystickPosition(clientX, clientY);
+  }
 
-  document.addEventListener('mousemove', (e) => {
-    if (isDragging) {
-      updateJoystickPosition(e);
-    }
-  });
-
-  document.addEventListener('mouseup', () => {
+  function stopDrag() {
     isDragging = false;
     joystick!.style.left = '50%';
     joystick!.style.top = '50%';
@@ -78,6 +72,33 @@ if (isMobile()) {
     player.onKeyUp({ code: 'KeyA', repeat: false });
     player.onKeyUp({ code: 'KeyS', repeat: false });
     player.onKeyUp({ code: 'KeyD', repeat: false });
+  }
+
+  // Mouse events
+  joystickArea!.addEventListener('mousedown', (e) =>
+    startDrag(e.clientX, e.clientY)
+  );
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      updateJoystickPosition(e.clientX, e.clientY);
+    }
+  });
+  document.addEventListener('mouseup', stopDrag);
+
+  // Touch events
+  joystickArea!.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    startDrag(e.touches[0].clientX, e.touches[0].clientY);
+  });
+  document.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      updateJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  });
+  document.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    stopDrag();
   });
 } else {
   (document.querySelector('#joystick-container') as any).style.display = 'none';
