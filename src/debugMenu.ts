@@ -7,7 +7,7 @@ import { Physics } from './Physics/physics';
 
 export function setupUI(world: World, player: Player, physics: Physics) {
   const gui = new GUI();
-
+  gui.close();
   const playerFolder = gui.addFolder('Player');
   playerFolder.add(player, 'maxSpeed', 1, 20, 0.1).name('Max Speed');
   playerFolder.add(player, 'jumpSpeed', 1, 10, 0.1).name('Jump Speed');
