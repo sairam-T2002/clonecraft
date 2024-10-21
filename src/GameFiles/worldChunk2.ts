@@ -2,9 +2,7 @@ import * as THREE from 'three';
 import { SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
 import { RNG } from './WorldRng.js';
 import { blocks, resources } from './blocks.js';
-import { IRng, WorldArray, BlockType, Block } from '../types.js';
-
-// const geometry = new THREE.BoxGeometry(1, 1, 1);
+import { IRng, WorldArray, Block } from '../types.js';
 
 // Define the faces of a cube
 const FACES = [
@@ -16,43 +14,45 @@ const FACES = [
   { dir: [0, 0, -1], name: 'back', index: 5 },
 ];
 
-export class World extends THREE.Group {
-  // World Dimentions
-  size: any = {
-    width: 64,
-    height: 16,
-  };
-
-  // Parameters for terrain generation
-  params: any = {
-    seed: 0,
-    terrain: {
-      scale: 30,
-      magnitude: 0.2,
-      offset: 0.5,
-      dirtLayer: 3,
-    },
-  };
-
-  // Array that contains all the block instance of the world
+export class WorldChunk extends THREE.Group {
   data: WorldArray = [];
+  size: any;
+  params: any;
+  loaded: boolean;
 
-  // Generates the world data and meshes
-  generate(): void {
+  constructor(size: any, params: any) {
+    super();
+    this.size = size;
+    this.params = params;
+    this.loaded = false;
+  }
+
+  /**
+   * Generates the world data and meshes
+   */
+  generate() {
+    const start = performance.now();
+
     const rng = new RNG(this.params.seed);
     this.initialize();
     this.generateResources(rng);
     this.generateTerrain(rng);
     this.generateMeshes();
+
+    this.loaded = true;
+
+    console.log(`Loaded chunk in ${performance.now() - start}ms`);
   }
 
-  // Initializes an empty world
-  initialize(): void {
+  /**
+   * Initializes an empty world
+   */
+  initialize() {
     this.data = [];
     for (let x = 0; x < this.size.width; x++) {
-      const slice: BlockType[][] = [];
+      const slice = [];
       for (let y = 0; y < this.size.height; y++) {
-        const row: BlockType[] = [];
+        const row = [];
         for (let z = 0; z < this.size.width; z++) {
           row.push({
             id: blocks.air.id,
@@ -65,17 +65,20 @@ export class World extends THREE.Group {
     }
   }
 
-  // Generates resources within the world
-  generateResources(rng: IRng): void {
+  /**
+   * Generates resources within the world
+   * @param {RNG} rng Random number generator
+   */
+  generateResources(rng: IRng) {
     for (const resource of resources) {
       const simplex = new SimplexNoise(rng);
       for (let x = 0; x < this.size.width; x++) {
         for (let y = 0; y < this.size.height; y++) {
           for (let z = 0; z < this.size.width; z++) {
             const n = simplex.noise3d(
-              x / resource.scale.x,
-              y / resource.scale.y,
-              z / resource.scale.z
+              (this.position.x + x) / resource.scale.x,
+              (this.position.y + y) / resource.scale.y,
+              (this.position.z + z) / resource.scale.z
             );
 
             if (n > resource.scarcity) {
@@ -87,15 +90,18 @@ export class World extends THREE.Group {
     }
   }
 
-  // Generates the world terrain data
-  generateTerrain(rng: IRng): void {
+  /**
+   * Generates the world terrain data
+   * @param {RNG} rng Random number generator
+   */
+  generateTerrain(rng: IRng) {
     const simplex = new SimplexNoise(rng);
     for (let x = 0; x < this.size.width; x++) {
       for (let z = 0; z < this.size.width; z++) {
         // Compute noise value at this x-z location
         const value = simplex.noise(
-          x / this.params.terrain.scale,
-          z / this.params.terrain.scale
+          (this.position.x + x) / this.params.terrain.scale,
+          (this.position.z + z) / this.params.terrain.scale
         );
 
         // Scale noise based on the magnitude and add in the offset
@@ -114,23 +120,19 @@ export class World extends THREE.Group {
         // Starting at the terrain height, fill in all the blocks below that height
         for (let y = 0; y < this.size.height; y++) {
           if (y === height) {
-            // surface is always grass
             this.setBlockId(x, y, z, blocks.grass.id);
           } else if (
             y < height &&
             y > height - this.params.terrain.dirtLayer &&
-            this.getBlock(x, y, z)?.id === blocks.air.id
+            this.getBlock(x, y, z)!.id === blocks.air.id
           ) {
-            // Dirt layer below the grass
             this.setBlockId(x, y, z, blocks.dirt.id);
           } else if (
             y <= height - this.params.terrain.dirtLayer &&
-            this.getBlock(x, y, z)?.id === blocks.air.id
+            this.getBlock(x, y, z)!.id === blocks.air.id
           ) {
-            // Stone layer below the dirt
             this.setBlockId(x, y, z, blocks.stone.id);
           } else if (y > height) {
-            // Air Block above grass layer
             this.setBlockId(x, y, z, blocks.air.id);
           }
         }
@@ -138,18 +140,19 @@ export class World extends THREE.Group {
     }
   }
 
-  // Generates the meshes from the world data
-  generateMeshes(): void {
+  /**
+   * Generates the meshes from the world data
+   */
+  generateMeshes() {
     this.disposeChildren();
 
-    // Create lookup table of InstancedMesh's with the block `${blockType.name}_${face.name}` being the key, instead of using Box Geometry, only faces of the blocks that are exposed to air block is rendered which in turn reduces draw call, effectively implementing face culling
+    // Create lookup table of InstancedMesh's with the block `${blockType.name}_${face.name}` being the key
     const meshes: Record<string, THREE.InstancedMesh> = {};
     Object.values(blocks)
       .filter((blockType: Block) => blockType.id !== blocks.air.id)
       .forEach((blockType: Block) => {
         FACES.forEach((face) => {
           const maxCount = this.size.width * this.size.width * this.size.height;
-          // face geometry creation with corresponding rotation and translation
           const geometry = this.createFaceGeometry(face.name);
 
           let material: THREE.Material | undefined;
@@ -236,8 +239,14 @@ export class World extends THREE.Group {
     return geometry;
   }
 
-  // Gets the block data at (x, y, z)
-  getBlock(x: number, y: number, z: number): BlockType | null {
+  /**
+   * Gets the block data at (x, y, z)
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @returns {{id: number, instanceId: number} | null}
+   */
+  getBlock(x: number, y: number, z: number) {
     if (this.inBounds(x, y, z)) {
       return this.data[x][y][z];
     } else {
@@ -245,27 +254,40 @@ export class World extends THREE.Group {
     }
   }
 
-  // Sets the block id for the block at (x, y, z)
-  setBlockId(x: number, y: number, z: number, id: number): void {
+  /**
+   * Sets the block id for the block at (x, y, z)
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @param {number} id
+   */
+  setBlockId(x: number, y: number, z: number, id: number) {
     if (this.inBounds(x, y, z)) {
       this.data[x][y][z].id = id;
     }
   }
 
-  // Sets the block instance id for the block at (x, y, z)
-  setBlockInstanceId(
-    x: number,
-    y: number,
-    z: number,
-    instanceId: number
-  ): void {
+  /**
+   * Sets the block instance id for the block at (x, y, z)
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @param {number} instanceId
+   */
+  setBlockInstanceId(x: number, y: number, z: number, instanceId: number) {
     if (this.inBounds(x, y, z)) {
       this.data[x][y][z].instanceId = instanceId;
     }
   }
 
-  // Checks if the (x, y, z) coordinates are within bounds
-  inBounds(x: number, y: number, z: number): boolean {
+  /**
+   * Checks if the (x, y, z) coordinates are within bounds
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @returns {boolean}
+   */
+  inBounds(x: number, y: number, z: number) {
     if (
       x >= 0 &&
       x < this.size.width &&
@@ -280,31 +302,7 @@ export class World extends THREE.Group {
     }
   }
 
-  // Returns true if this block is completely hidden by other blocks
-  isBlockObscured(x: number, y: number, z: number): boolean {
-    const up = this.getBlock(x, y + 1, z)?.id ?? blocks.air.id;
-    const down = this.getBlock(x, y - 1, z)?.id ?? blocks.air.id;
-    const left = this.getBlock(x + 1, y, z)?.id ?? blocks.air.id;
-    const right = this.getBlock(x - 1, y, z)?.id ?? blocks.air.id;
-    const forward = this.getBlock(x, y, z + 1)?.id ?? blocks.air.id;
-    const back = this.getBlock(x, y, z - 1)?.id ?? blocks.air.id;
-
-    // If any of the block's sides is exposed, it is not obscured
-    if (
-      up === blocks.air.id ||
-      down === blocks.air.id ||
-      left === blocks.air.id ||
-      right === blocks.air.id ||
-      forward === blocks.air.id ||
-      back === blocks.air.id
-    ) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  disposeChildren(): void {
+  disposeChildren() {
     this.traverse((obj: any) => {
       if (obj.dispose) obj.dispose();
     });

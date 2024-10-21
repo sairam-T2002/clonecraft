@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { blocks } from '../GameFiles/blocks';
 import { Player } from '../GameFiles/player';
 import { World } from '../GameFiles/world';
-import { Coords, Collision } from '../types';
+import { Coords } from '../types';
 
 const collisionMaterial = new THREE.MeshBasicMaterial({
   color: 0xff0000,
@@ -18,15 +18,15 @@ const contactMaterial = new THREE.MeshBasicMaterial({
 const contactGeometry = new THREE.SphereGeometry(0.05, 6, 6);
 
 export class Physics {
-  // Acceleration due to gravity in fts/s^2
-  gravity: number = 32;
+  // Acceleration due to gravity
+  gravity = 32;
 
   // Physic simulation rate
-  simulationRate: number = 180;
-  stepSize: number = 1 / this.simulationRate;
+  simulationRate = 250;
+  stepSize = 1 / this.simulationRate;
   // Accumulator to keep track of leftover dt
-  accumulator: number = 0;
-  helpers: THREE.Group;
+  accumulator = 0;
+  helpers;
 
   constructor(scene: THREE.Scene) {
     this.helpers = new THREE.Group();
@@ -34,8 +34,13 @@ export class Physics {
     scene.add(this.helpers);
   }
 
-  // Moves the physics simulation forward in time by 'dt'
-  update(dt: number, player: Player, world: World): void {
+  /**
+   * Moves the physics simulation forward in time by 'dt'
+   * @param {number} dt
+   * @param {Player} player
+   * @param {World} world
+   */
+  update(dt: number, player: Player, world: World) {
     this.accumulator += dt;
     while (this.accumulator >= this.stepSize) {
       player.velocity.y -= this.gravity * this.stepSize;
@@ -47,23 +52,28 @@ export class Physics {
     player.updateBoundsHelper();
   }
 
-  // Main function for collision detection
-  detectCollisions(player: Player, world: World): void {
+  /**
+   * Main function for collision detection
+   */
+  detectCollisions(player: Player, world: World) {
     player.onGround = false;
     this.helpers.clear();
 
-    const candidates: Coords[] = this.broadPhase(player, world);
-    const collisions: Collision[] = this.narrowPhase(candidates, player);
+    const candidates = this.broadPhase(player, world);
+    const collisions = this.narrowPhase(candidates, player);
 
     if (collisions.length > 0) {
       this.resolveCollisions(collisions, player);
     }
   }
 
-  // Performs a rough search against the world to return all possible blocks the player may be colliding with
+  /**
+   * Performs a rough search against the world to return all
+   * possible blocks the player may be colliding with
+   * @returns {{ id: number, instanceId: number }[]}
+   */
   broadPhase(player: Player, world: World): Coords[] {
-    const candidates: Coords[] = [];
-
+    const candidates = [];
     // Get the block containing the center of the camera
     // const playerBlockPos = {
     //   x: Math.floor(player.position.x),
@@ -81,29 +91,36 @@ export class Physics {
 
     // Loop through all blocks next to the block the center of the player is in
     // If they aren't empty, then they are a possible collision candidate
-    let block: Coords;
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
           const blockId = world.getBlock(x, y, z)?.id;
           if (blockId && blockId !== blocks.air.id) {
-            block = { x, y, z };
+            const block = { x, y, z };
             candidates.push(block);
             this.addCollisionHelper(block);
           }
         }
       }
     }
+
+    //console.log(`Broadphase Candidates: ${candidates.length}`);
+
     return candidates;
   }
 
-  // Narrows down the blocks found in the broad-phase to the set of blocks the player is actually colliding with broad phase candidates
-  narrowPhase(candidates: Coords[], player: Player): Collision[] {
-    const collisions: Collision[] = [];
+  /**
+   * Narrows down the blocks found in the broad-phase to the set
+   * of blocks the player is actually colliding with
+   * @param {{ id: number, instanceId: number }[]} candidates
+   * @returns
+   */
+  narrowPhase(candidates: any, player: Player) {
+    const collisions = [];
 
     for (const block of candidates) {
       // Get the point on the block that is closest to the center of the player's bounding cylinder
-      const closestPoint: Coords = {
+      const closestPoint = {
         x: Math.max(block.x - 0.5, Math.min(player.position.x, block.x + 0.5)),
         y: Math.max(
           block.y - 0.5,
@@ -135,24 +152,33 @@ export class Physics {
           normal = new THREE.Vector3(-dx, 0, -dz).normalize();
           overlap = overlapXZ;
         }
-        const Collision: Collision = {
+
+        collisions.push({
           block,
           contactPoint: closestPoint,
           normal,
           overlap,
-        };
-        collisions.push(Collision);
+        });
 
         this.addContactPointerHelper(closestPoint);
       }
     }
+
+    //console.log(`Narrowphase Collisions: ${collisions.length}`);
+
     return collisions;
   }
 
-  // Resolves each of the collisions found in the narrow-phase
-  resolveCollisions(collisions: Collision[], player: Player): void {
+  /**
+   * Resolves each of the collisions found in the narrow-phase
+   * @param {*} collisions
+   * @param {Player} player
+   */
+  resolveCollisions(collisions: any, player: Player) {
     // Resolve the collisions in order of the smallest overlap to the largest
-    collisions.sort((a, b) => a.overlap - b.overlap);
+    collisions.sort((a: any, b: any) => {
+      return a.overlap < b.overlap;
+    });
 
     for (const collision of collisions) {
       // We need to re-check if the contact point is inside the player bounding
@@ -178,8 +204,13 @@ export class Physics {
     }
   }
 
-  // Returns true if the point 'p' is inside the player's bounding cylinder
-  pointInPlayerBoundingCylinder(p: Coords, player: Player): boolean {
+  /**
+   * Returns true if the point 'p' is inside the player's bounding cylinder
+   * @param {{ x: number, y: number, z: number }} p
+   * @param {Player} player
+   * @returns {boolean}
+   */
+  pointInPlayerBoundingCylinder(p: any, player: Player) {
     const dx = p.x - player.position.x;
     const dy = p.y - (player.position.y - player.height / 2);
     const dz = p.z - player.position.z;
@@ -191,15 +222,21 @@ export class Physics {
     );
   }
 
-  // Visualizes the block the player is colliding with
-  addCollisionHelper(block: Coords): void {
+  /**
+   * Visualizes the block the player is colliding with
+   * @param {THREE.Object3D} block
+   */
+  addCollisionHelper(block: any) {
     const blockMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
     blockMesh.position.copy(block);
     this.helpers.add(blockMesh);
   }
 
-  // Visualizes the contact at the point 'p'
-  addContactPointerHelper(p: Coords): void {
+  /**
+   * Visualizes the contact at the point 'p'
+   * @param {{ x, y, z }} p
+   */
+  addContactPointerHelper(p: any) {
     const contactMesh = new THREE.Mesh(contactGeometry, contactMaterial);
     contactMesh.position.copy(p);
     this.helpers.add(contactMesh);

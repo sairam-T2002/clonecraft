@@ -1,11 +1,21 @@
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-// import { World } from './GameFiles/world';
-import { World } from './GameFiles/world2';
 import { resources } from './GameFiles/blocks';
+import { World } from './GameFiles/world';
 import { Player } from './GameFiles/player';
 import { Physics } from './Physics/physics';
 
-export function setupUI(world: World, player: Player, physics: Physics) {
+/**
+ * Sets up the UI controls
+ * @param {World} world
+ * @param {Player} player
+ * @param {Physics} physics
+ */
+export function setupUI(
+  world: World,
+  player: Player,
+  physics: Physics,
+  scene: any
+) {
   const gui = new GUI();
   gui.close();
   const playerFolder = gui.addFolder('Player');
@@ -16,20 +26,19 @@ export function setupUI(world: World, player: Player, physics: Physics) {
 
   const physicsFolder = gui.addFolder('Physics');
   physicsFolder.add(physics.helpers, 'visible').name('Visualize Collisions');
-  physicsFolder
-    .add(physics, 'simulationRate', 10, 1000)
-    .name('Simulation Rate');
+  physicsFolder.add(physics, 'simulationRate', 10, 1000).name('Sim Rate');
 
   const worldFolder = gui.addFolder('World');
-  worldFolder.add(world.size, 'width', 8, 128, 1).name('Width');
-  worldFolder.add(world.size, 'height', 8, 32, 1).name('Height');
+  worldFolder.add(world, 'drawDistance', 0, 5, 1).name('Draw Distance');
+  worldFolder.add(world, 'asyncLoading').name('Async Loading');
+  worldFolder.add(scene.fog, 'near', 1, 200, 1).name('Fog Near');
+  worldFolder.add(scene.fog, 'far', 1, 200, 1).name('Fog Far');
 
   const terrainFolder = worldFolder.addFolder('Terrain');
   terrainFolder.add(world.params, 'seed', 0, 10000, 1).name('Seed');
   terrainFolder.add(world.params.terrain, 'scale', 10, 100).name('Scale');
   terrainFolder.add(world.params.terrain, 'magnitude', 0, 1).name('Magnitude');
   terrainFolder.add(world.params.terrain, 'offset', 0, 1).name('Offset');
-  terrainFolder.add(world.params.terrain, 'dirtLayer', 0, 10).name('dirtLayer');
 
   const resourcesFolder = gui.addFolder('Resources');
   for (const resource of resources) {
@@ -41,11 +50,7 @@ export function setupUI(world: World, player: Player, physics: Physics) {
     scaleFolder.add(resource.scale, 'z', 10, 100).name('Z Scale');
   }
 
-  terrainFolder.onChange(() => {
-    world.generate();
-  });
-
-  worldFolder.onChange(() => {
-    world.generate();
+  terrainFolder.onFinishChange(() => {
+    world.regenerate(player);
   });
 }
