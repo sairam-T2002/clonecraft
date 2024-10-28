@@ -30,7 +30,7 @@ controls.update();
 
 // Scene setup
 const scene = new THREE.Scene();
-const player = new Player(scene);
+const player = new Player(scene, orbitCamera, controls);
 const physics = new Physics(scene);
 const world = new World();
 scene.add(world);

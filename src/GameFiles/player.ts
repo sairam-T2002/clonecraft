@@ -20,12 +20,20 @@ export class Player {
   #worldVelocity = new THREE.Vector3();
   input = new THREE.Vector3();
   boundsHelper;
+  orbitCamera: THREE.PerspectiveCamera;
+  orbitControls;
 
-  constructor(scene: THREE.Scene) {
+  constructor(
+    scene: THREE.Scene,
+    _orbitCamera: THREE.PerspectiveCamera,
+    _controls: any
+  ) {
     this.position.set(32, 32, 32);
     this.cameraHelper.visible = false;
     scene.add(this.camera);
     scene.add(this.cameraHelper);
+    this.orbitCamera = _orbitCamera;
+    this.orbitControls = _controls;
 
     // Wireframe mesh visualizing the player's bounding cylinder
     this.boundsHelper = new THREE.Mesh(
@@ -106,6 +114,8 @@ export class Player {
         if (this.controls.isLocked) {
           console.log('unlocking controls');
           this.controls.unlock();
+          this.orbitCamera.position.copy(this.position);
+          this.orbitControls.update();
         }
         break;
       case 'KeyW':

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { WorldChunk } from './worldChunk';
-// import { WorldChunk } from './worldChunk2';
+// import { WorldChunk } from './worldChunk';
+import { WorldChunk } from './worldChunk2';
 import { Player } from './player';
 
 export class World extends THREE.Group {
